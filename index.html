@@ -1,0 +1,369 @@
+<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>หมู่บ้านโลว์โพลี</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#bfd9ee;font-family:'Noto Sans Thai','Sarabun',system-ui,sans-serif;user-select:none;color:#1b2b4b}
+canvas{display:block;touch-action:none}button{font:inherit;cursor:pointer;border:0;border-radius:6px;padding:5px 10px;background:#2d5fc4;color:#fff}button:disabled{cursor:not-allowed;opacity:.55}
+#top{position:fixed;top:0;left:0;right:0;padding:env(safe-area-inset-top,0px) 8px 0;display:none;gap:6px;flex-wrap:wrap;background:#1b2b4bdd;color:#fff;font-size:14px;align-items:center;min-height:40px;box-shadow:0 2px 8px #0005;z-index:4}
+#hud span{display:inline-block;margin:2px 3px;padding:2px 8px;background:#ffffff22;border-radius:6px}
+#menu{position:fixed;right:0;top:56px;width:224px;background:#f4f7fbee;padding:8px;border-radius:10px 0 0 10px;display:none;grid-template-columns:1fr 1fr;gap:6px;max-height:calc(100% - 72px);overflow:auto;box-shadow:0 2px 10px #0004;z-index:3}
+#menu button{background:#fff;color:#1b2b4b;border:2px solid #2d5fc4;display:flex;flex-direction:column;align-items:center;font-size:13px}
+#pn{position:fixed;left:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));background:#f4f7fbee;padding:10px;border-radius:10px;display:none;max-width:340px;max-height:60%;overflow:auto;font-size:14px;box-shadow:0 2px 10px #0004;z-index:3}
+#pn button{margin:2px;text-shadow:0 1px 2px #000a}#pn select{font:inherit}
+#ts{position:fixed;top:64px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:4px;align-items:center;pointer-events:none;z-index:6}
+#ts div{background:#1b2b4bee;color:#fff;padding:6px 14px;border-radius:8px;font-size:14px}
+#box{position:fixed;border:1px solid #fff;background:#3b82f633;display:none;pointer-events:none}
+.lb{position:fixed;transform:translate(-50%,-50%);background:#1b2b4bcc;color:#fff;padding:1px 7px;border-radius:8px;font-size:12px;pointer-events:none}
+#zb{position:fixed;right:8px;bottom:calc(64px + env(safe-area-inset-bottom,0px));display:none;flex-direction:column;gap:6px;z-index:3}#zb button{width:46px;height:46px;font-size:17px}
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(#bfd9ee,#7cc35a)}
+.card{background:#fff;padding:22px;border-radius:14px;width:300px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 30px #0004}
+.card h2{margin:0;text-align:center}.card input{font:inherit;padding:8px;border:2px solid #c9d6ee;border-radius:6px}
+#er{color:#c0392b;min-height:18px;margin:0;font-size:13px}.tabs{display:flex;gap:6px}.tabs button{flex:1;background:#c9d6ee;color:#1b2b4b}.tabs .on{background:#2d5fc4;color:#fff}
+#devh{font-size:12px;background:#eef3fb;border-radius:8px;padding:8px;margin:0}
+</style></head><body>
+<div id="top"><div id="hud"></div><button onclick="toggleMenu()">🏗 เมนูสร้าง</button><button onclick="openMarket()">🏪 ตลาด</button><button id="sm" onclick="toggleSel()">🔲 ลากเลือก: ปิด</button><button id="dv" onclick="devTgl()">📱 โหมดมือถือ</button><button onclick="save(1)">💾 บันทึก</button><button onclick="logout()">ออกจากระบบ</button><button onclick="reset()" style="background:#c0392b">เริ่มใหม่</button></div>
+<div id="menu"></div><div id="pn"></div><div id="ts"></div><div id="box"></div><div id="lbs"></div>
+<div id="zb"><button onclick="zoomBy(.8)">🔍＋</button><button onclick="zoomBy(1.3)">🔍－</button></div>
+<div id="login"><div class="card"><h2>🏡 หมู่บ้านโลว์โพลี</h2>
+<div class="tabs"><button id="d0" class="on" onclick="setDev(0)">📱 เล่นบนโทรศัพท์</button><button id="d1" onclick="setDev(1)">🖥 เล่นบนคอม</button></div>
+<p id="devh"></p>
+<div class="tabs"><button id="t0" class="on" onclick="tab(0)">ชื่อผู้เล่น</button><button id="t1" onclick="tab(1)">Google/Gmail</button></div>
+<input id="iu" placeholder="ชื่อผู้เล่น" autocomplete="off"><input id="ip" type="password" placeholder="รหัสผ่านเกม">
+<div style="display:flex;gap:6px"><button style="flex:1" onclick="auth(0)">เข้าสู่ระบบ</button><button style="flex:1;background:#3a9d4f" onclick="auth(1)">สมัครใหม่</button></div>
+<p id="er"></p><small>บัญชีจำลองออฟไลน์ เก็บในเบราว์เซอร์นี้เท่านั้น</small></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ===== ★ ไอคอน SVG วาดเองทั้งหมด ===== */
+const SVGA={
+g:'<circle cx="8" cy="8" r="6.4" fill="#f4c531" stroke="#a8790b" stroke-width="1.4"/><circle cx="8" cy="8" r="4.1" fill="none" stroke="#d9a814" stroke-width="1"/><rect x="6.7" y="6.7" width="2.6" height="2.6" rx=".5" fill="#a8790b"/>',
+w:'<rect x="1" y="5.4" width="10.2" height="5.4" rx="1.2" fill="#8a5a2b"/><path d="M3.2 6.9h5.2M3.2 9.3h5.2" stroke="#6e4520" stroke-width=".7" stroke-linecap="round"/><ellipse cx="11.3" cy="8.1" rx="2.1" ry="2.7" fill="#d2a76e" stroke="#8a5a2b" stroke-width=".9"/><ellipse cx="11.3" cy="8.1" rx=".9" ry="1.3" fill="none" stroke="#a97b45" stroke-width=".7"/>',
+s:'<path d="M3.2 12.6L1.9 8.4 4.2 4.4l5.1-1.7 4 3.1.9 4.9-2.8 1.9z" fill="#9aa3ad" stroke="#5c646e" stroke-width="1"/><path d="M6.8 3.6L8.1 8l-3 4.6M8.1 8l6-2.2" stroke="#767f89" stroke-width=".8" fill="none"/>',
+i:'<path d="M2.6 11.6L2 7.7 5.4 4.2l5.9.6L14 8.2l-1.4 4.4-5 .6z" fill="#7d8894" stroke="#4d555f" stroke-width="1"/><path d="M6 6.4l1.6 2.2M10.2 5.4l-1 2.6" stroke="#d7dfe6" stroke-width="1" stroke-linecap="round"/>',
+f:'<path d="M8 15V3.6" stroke="#c79a2b" stroke-width="1.3"/><path d="M8 4.4L5.6 2.4M8 4.4l2.4-2M8 7.2L5.1 5.4M8 7.2l2.9-1.8M8 10L5.1 8.2M8 10l2.9-1.8M8 12.6l-2.9-1.8M8 12.6l2.9-1.8" stroke="#eec24a" stroke-width="1.5" stroke-linecap="round"/>',
+c:'<path d="M4.6 2.4v11.9M4.6 9.8h7.6M12.2 9.8v4.5M4.6 5.5h3.7" stroke="#9c6b30" stroke-width="1.7" stroke-linecap="round" fill="none"/>',
+d:'<rect x="2.6" y="3.8" width="1.7" height="10" rx=".7" fill="#8a5a2b"/><rect x="2.4" y="8.6" width="11.4" height="3.6" rx="1.4" fill="#e05656"/><rect x="4.1" y="7.5" width="3.4" height="1.9" rx=".9" fill="#fff"/><rect x="11.8" y="11.4" width="1.5" height="2.6" rx=".6" fill="#8a5a2b"/>',
+tb:'<rect x="1.4" y="5.2" width="13.2" height="2.1" rx=".9" fill="#9c6b30"/><rect x="2.6" y="7.3" width="1.6" height="6.6" fill="#7d5124"/><rect x="11.8" y="7.3" width="1.6" height="6.6" fill="#7d5124"/>',
+so:'<rect x="2" y="3.4" width="12" height="5.6" rx="1.6" fill="#2e86ab"/><rect x="1.2" y="8.2" width="13.6" height="4.2" rx="1.5" fill="#41a0c9"/><rect x="1.2" y="8.2" width="2.3" height="4.6" rx="1.1" fill="#2e86ab"/><rect x="12.5" y="8.2" width="2.3" height="4.6" rx="1.1" fill="#2e86ab"/><rect x="1.2" y="11.4" width="13.6" height="1.9" rx=".9" fill="#1f6c8f"/>',
+cb:'<rect x="3" y="2" width="10" height="12.5" rx=".9" fill="#a0713c" stroke="#7a5228" stroke-width="1"/><path d="M8 2v12.5" stroke="#7a5228" stroke-width="1"/><circle cx="6.7" cy="8.2" r=".95" fill="#f2d38a"/><circle cx="9.3" cy="8.2" r=".95" fill="#f2d38a"/>'};
+const RI={};for(const k in SVGA)RI[k]=`<svg width="15" height="15" viewBox="0 0 16 16" style="vertical-align:-2px">${SVGA[k]}</svg>`;
+const BIC={
+hall:'<path d="M1.6 6.4L8 1.7l6.4 4.7z" fill="#1e3f8a"/><rect x="2.9" y="6.9" width="1.7" height="6.1" fill="#e8eef7"/><rect x="7.15" y="6.9" width="1.7" height="6.1" fill="#e8eef7"/><rect x="11.4" y="6.9" width="1.7" height="6.1" fill="#e8eef7"/><rect x="1.8" y="13" width="12.4" height="1.8" rx=".5" fill="#7d8ba3"/>',
+house:'<path d="M1.8 7.2L8 1.9l6.2 5.3z" fill="#2d5fc4"/><rect x="3.6" y="7.2" width="8.8" height="7" fill="#f2f4f8"/><rect x="6.8" y="9.6" width="2.4" height="4.6" rx=".4" fill="#7a4a22"/><rect x="4.6" y="8.6" width="1.7" height="1.7" fill="#bfe0ff"/>',
+farm:'<rect x="1.6" y="4.4" width="12.8" height="10" rx="1" fill="#b08a4a"/><path d="M3 6.8h10M3 9.4h10M3 12h10" stroke="#7fa03c" stroke-width="1.7" stroke-linecap="round"/>',
+saw:'<circle cx="8" cy="8" r="5.9" fill="none" stroke="#5b6b85" stroke-width="1.7" stroke-dasharray="2.3 1.7"/><circle cx="8" cy="8" r="4.5" fill="#c7ced9"/><circle cx="8" cy="8" r="1.3" fill="#5b6b85"/>',
+quarry:'<rect x="1.8" y="9.7" width="5.4" height="4.5" rx=".4" fill="#9aa3ad" stroke="#5c646e" stroke-width=".8"/><rect x="8.8" y="9.7" width="5.4" height="4.5" rx=".4" fill="#8a939d" stroke="#5c646e" stroke-width=".8"/><rect x="5.3" y="4.9" width="5.4" height="4.5" rx=".4" fill="#aab3bd" stroke="#5c646e" stroke-width=".8"/>',
+mine:'<rect x="1.8" y="4.2" width="12.4" height="10.2" rx="1" fill="#8d7b64"/><path d="M5.2 14.4v-4.5a2.8 2.8 0 015.6 0v4.5z" fill="#241a12"/><path d="M6.3 14.4l3.4-2.5M9.7 14.4l-3.4-2.5" stroke="#caa96a" stroke-width=".9"/>',
+market:'<rect x="1.6" y="2.8" width="12.8" height="3.4" fill="#e05656"/><rect x="4.7" y="2.8" width="2.1" height="3.4" fill="#fff"/><rect x="9" y="2.8" width="2.1" height="3.4" fill="#fff"/><rect x="2.8" y="6.2" width="10.4" height="7.6" fill="#f2f4f8" stroke="#c9d6ee"/><rect x="6.6" y="8.4" width="2.8" height="5.4" rx=".4" fill="#7a4a22"/>',
+shop:'<path d="M2.2 3.4h2.1l1.9 7.3h7.2" fill="none" stroke="#37506e" stroke-width="1.5" stroke-linejoin="round"/><path d="M5.1 6.6h8.5l-1.4 3H5.7" fill="#e8b83c" stroke="#37506e" stroke-width="1.2" stroke-linejoin="round"/><circle cx="7" cy="13.2" r="1.4" fill="#37506e"/><circle cx="11.8" cy="13.2" r="1.4" fill="#37506e"/>',
+fact:'<rect x="2" y="6.6" width="12" height="7.4" fill="#d8d2c6" stroke="#a99f8e" stroke-width=".9"/><rect x="10.2" y="2.4" width="2.5" height="4.2" fill="#8a3b2b"/><circle cx="11.4" cy="1.8" r="1" fill="#c4c4c4" opacity=".65"/><path d="M4 6.6V4.6l2.6 1.4V4l2.6 1.5" fill="none" stroke="#a99f8e" stroke-width=".9"/>',
+path:'<rect x="1.6" y="1.6" width="12.8" height="12.8" rx="2" fill="#cfa972" stroke="#a8804e" stroke-width="1"/><ellipse cx="5.4" cy="5.6" rx="1.6" ry="1.1" fill="#b59466"/><ellipse cx="10.6" cy="9.2" rx="1.8" ry="1.2" fill="#b59466"/><ellipse cx="6" cy="11.6" rx="1.4" ry="1" fill="#b59466"/><ellipse cx="10.8" cy="4.6" rx="1.2" ry=".9" fill="#b59466"/>'};
+const I=(p,s)=>`<svg width="${s||22}" height="${s||22}" viewBox="0 0 16 16" style="vertical-align:-4px">${p}</svg>`;
+
+/* ===== คอนฟิก ===== */
+const B={
+ hall:{n:'ศาลากลาง',ic:I(BIC.hall),s:3,h:1.4,roof:0x1e3f8a,c:{},d:'จัดการอาชีพชาวบ้านทุกคน'},
+ house:{n:'บ้าน',ic:I(BIC.house),s:2,h:.9,roof:0x2d5fc4,c:{g:200},d:'ที่อยู่อาศัย 2 คน (อัปเกรดได้)'},
+ farm:{n:'ไร่นา',ic:I(BIC.farm),s:3,h:.15,col:0xb08a4a,c:{g:100,w:20},d:'ดูแล ~30 วิ เก็บข้าว 150/ครั้ง'}, // ★ ชะลอลง: 30 วินาที/รอบ
+ saw:{n:'โรงเลื่อย',ic:I(BIC.saw),s:2,h:.8,roof:0x3b7dd8,c:{g:150,w:30},d:'โกดังเลื่อยไม้ เพิ่มผลไม้'},
+ quarry:{n:'โรงหิน',ic:I(BIC.quarry),s:2,h:.8,roof:0x5b6b85,c:{g:150,w:20,s:10},d:'โกดังตัดหิน เพิ่มหิน'},
+ mine:{n:'เหมืองแร่',ic:I(BIC.mine),s:2,h:.7,roof:0x444a58,c:{g:300,w:50,s:30},lv:2,d:'ปากเหมือง+รางรถเข็น'},
+ market:{n:'ตลาด',ic:I(BIC.market),s:2,h:1,roof:0x2a4d9b,c:{g:200,w:40},d:'ซื้อ-ขายวัตถุดิบ'},
+ shop:{n:'ร้านค้า',ic:I(BIC.shop),s:2,h:1,roof:0xd68910,c:{g:250,w:30},d:'รับซื้อของ+ขายเฟอร์นิเจอร์'},
+ fact:{n:'โรงงาน',ic:I(BIC.fact),s:3,h:1.1,col:0xe8e2d6,roof:0x8a3b2b,c:{g:400,w:80,s:40},lv:2,d:'ผลิตเฟอร์นิเจอร์ 5 ชนิด'},
+ path:{n:'ทางเดิน',ic:I(BIC.path),s:1,h:.1,col:0xc9a875,c:{g:2},d:'2 เหรียญ/แผ่น คนเดินเร็ว×1.5'}};
+const JOBS={idle:{n:'ว่างงาน',col:0xcccccc},carp:{n:'ช่างไม้',col:0x8b5a2b},plant:{n:'คนปลูกต้นไม้',col:0x2e9e4a},build:{n:'ช่างก่อสร้าง',col:0xf1c40f},stone:{n:'ช่างหิน',col:0x778899},miner:{n:'คนขุดแร่',col:0x8e44ad},farmer:{n:'ชาวนา',col:0xe67e22},craft:{n:'ช่างฝีมือ',col:0xd35400},seller:{n:'พ่อค้าแม่ค้า',col:0x16a085}};
+const PROD={chair:{n:'เก้าอี้',ic:RI.c,k:'c',res:{w:2,s:1},val:30},table:{n:'โต๊ะไม้',ic:RI.tb,k:'tb',res:{w:3,s:1},val:45},bed:{n:'เตียง',ic:RI.d,k:'d',res:{w:3,s:2,i:1},val:70},sofa:{n:'โซฟา',ic:RI.so,k:'so',res:{w:4,s:1,i:1},val:100},cab:{n:'ตู้เสื้อผ้า',ic:RI.cb,k:'cb',res:{w:3,s:3,i:2},val:130}};
+const SV={};for(const q in PROD)SV[PROD[q].k]=PROD[q].val;
+const PB={w:4,s:6,i:16,f:3},P={w:2,s:3,i:8,f:1.5};
+const UC={g:150,w:40,s:20,c:2},UC2={g:400,w:80,s:40,i:10,d:1,so:1,cb:1};
+const $=id=>document.getElementById(id),rnd=(a,b)=>a+Math.random()*(b-a);
+const st={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+
+/* ===== เลือกอุปกรณ์: มือถือ / คอม ===== */
+let dev=+(st.get('rts_dev')||0);
+function setDev(d){dev=d;st.set('rts_dev',d);$('d0').className=d?'':'on';$('d1').className=d?'on':'';
+ $('dv').textContent=dev?'🖥 โหมดคอม':'📱 โหมดมือถือ';
+ $('devh').innerHTML=d?'🖥 <b>คอม</b>: ลากเมาส์/คลิกขวาลาก = เลื่อนแผนที่ • ล้อเมาส์ = ซูม • คลิกซ้าย = เลือก/วาง • <b>คลิกขวา = ยกเลิก</b> • Shift+ลาก = เลือกหลายคน':'📱 <b>โทรศัพท์</b>: ลากนิ้ว = เลื่อนแผนที่ • แตะ = เลือก/วาง (แตะซ้ำตำแหน่งเดิม = ยืนยันวาง) • สองนิ้ว = ซูม • <b>แตะพื้นว่าง = ยกเลิก</b> • ปุ่ม 🔲 = ลากเลือกหลายคน'}
+function devTgl(){setDev(dev?0:1);$('zb').style.display=dev?'none':'flex';toast(dev?'โหมดคอม: คลิกขวาเพื่อยกเลิก':'โหมดมือถือ: แตะที่ว่างเพื่อยกเลิก')}
+function zoomBy(f){if(!S)return;cm.d=Math.max(10,Math.min(60,cm.d*f))}
+
+/* ===== ระบบบัญชี ===== */
+let mode=0,uid=null,S=null;
+const H=s=>{let a=3735928559,b=1103547991;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=Math.imul(a^c,2654435761);b=Math.imul(b^c,1597334677)}a=Math.imul(a^a>>>16,2246822507)^Math.imul(b^b>>>13,3266489909);b=Math.imul(b^b>>>16,2246822507)^Math.imul(a^a>>>13,3266489909);return(4294967296*(2097151&b)+(a>>>0)).toString(36)};
+function tab(n){mode=n;$('t0').className=n?'':'on';$('t1').className=n?'on':'';$('iu').placeholder=n?'อีเมล Gmail':'ชื่อผู้เล่น';$('er').textContent=''}
+function auth(reg){const u=$('iu').value.trim(),p=$('ip').value,e=m=>$('er').textContent=m;
+ if(!u||!p)return e('กรอกข้อมูลให้ครบ');if(mode&&!/^\S+@\S+\.\S+$/.test(u))return e('รูปแบบอีเมลไม่ถูกต้อง');
+ const id=(mode?'g:':'n:')+u.toLowerCase(),us=JSON.parse(st.get('rts_u')||'{}');
+ if(reg){if(us[id])return e(mode?'อีเมลนี้ถูกใช้แล้ว':'ชื่อนี้ถูกใช้แล้ว');if(p.length<4)return e('รหัสผ่านต้องมี 4 ตัวขึ้นไป');us[id]=H(id+'|'+p);st.set('rts_u',JSON.stringify(us))}
+ else{if(!us[id])return e('ไม่พบบัญชีนี้');if(us[id]!==H(id+'|'+p))return e('รหัสผ่านไม่ถูกต้อง')}
+ $('ip').value='';e('');start(id)}
+function save(v){if(!S||!uid)return;st.set('rts_s_'+uid,JSON.stringify(S,(k,x)=>k=='m'||k=='tg'||k=='lb'?undefined:x));if(v)toast('บันทึกแล้ว')}
+function logout(){save();S=null;uid=null;clr();['top','menu','pn'].forEach(i=>$(i).style.display='none');$('zb').style.display='none';$('login').style.display='flex'}
+function reset(){if(confirm('เริ่มเกมใหม่? ข้อมูลเดิมจะหายไป')){newWorld();refresh()}}
+setInterval(()=>save(),8000);addEventListener('beforeunload',()=>save());
+
+/* ===== Three.js ฉาก ===== */
+const R=new THREE.WebGLRenderer({antialias:true});R.setSize(innerWidth,innerHeight);R.setPixelRatio(Math.min(devicePixelRatio,2));R.shadowMap.enabled=true;document.body.appendChild(R.domElement);
+const sc=new THREE.Scene();sc.background=new THREE.Color(0xbfd9ee);sc.fog=new THREE.Fog(0xbfd9ee,45,140);
+const cam=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,.5,300);
+sc.add(new THREE.HemisphereLight(0xffffff,0x6a8f5a,.75));
+const sun=new THREE.DirectionalLight(0xfff2d0,.9);sun.position.set(30,50,20);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+const sh=sun.shadow.camera;sh.left=sh.bottom=-50;sh.right=sh.top=50;sh.far=150;sun.shadow.bias=-.0006;sun.shadow.normalBias=.03;sc.add(sun);
+const M=c=>new THREE.MeshLambertMaterial({color:c,flatShading:true});
+const gmat=M(0x76c157);gmat.polygonOffset=true;gmat.polygonOffsetFactor=1;gmat.polygonOffsetUnits=1;const gm=new THREE.Mesh(new THREE.PlaneGeometry(76,76),gmat);gm.rotation.x=-Math.PI/2;gm.receiveShadow=true;sc.add(gm);
+const og=new THREE.Mesh(new THREE.PlaneGeometry(400,400),M(0x5da844));og.rotation.x=-Math.PI/2;og.position.y=-.02;sc.add(og);
+const grid=new THREE.GridHelper(76,76,0x3f7f2c,0x3f7f2c);grid.position.y=.05;grid.material.transparent=true;grid.material.opacity=.3;grid.visible=false;sc.add(grid);
+const dyn=new THREE.Group();sc.add(dyn);
+const gT=new THREE.CylinderGeometry(.08,.1,.4,5),gC=new THREE.ConeGeometry(.42,.8,5),mT=M(0x6b4423),mG1=M(0x2e8b3d),mG2=M(0x3fa04a);
+function mkTree(){const g=new THREE.Group(),t=new THREE.Mesh(gT,mT);t.position.y=.2;const a=new THREE.Mesh(gC,mG1);a.position.y=.75;const b=new THREE.Mesh(gC,mG2);b.position.y=1.2;b.scale.setScalar(.7);[t,a,b].forEach(m=>{m.castShadow=true;g.add(m)});return g}
+for(let n=0;n<140;n++){const a=rnd(0,6.28),d=rnd(39,52),t=mkTree();t.position.set(Math.cos(a)*d,0,Math.sin(a)*d);t.scale.setScalar(rnd(1,1.8));sc.add(t)}
+
+/* ===== ชิ้นส่วน 3D: เลื่อยหมุน / ต้นข้าว / ก้อนหินเล็ก ===== */
+const SPIN=[],PATHS=new Set();
+const gPeb=new THREE.DodecahedronGeometry(.2,0),gCrop=new THREE.ConeGeometry(.14,.55,5);
+const CGOLD=new THREE.Color(0xe8c04a);
+const sawShape=(()=>{const s=new THREE.Shape();for(let i=0;i<14;i++){const a0=i/14*6.283,a1=(i+.42)/14*6.283,a2=(i+1)/14*6.283;s[i?'lineTo':'moveTo'](Math.cos(a0)*.4,Math.sin(a0)*.4);s.lineTo(Math.cos(a1)*.53,Math.sin(a1)*.53);s.lineTo(Math.cos(a2)*.4,Math.sin(a2)*.4)}s.closePath();return s})();
+const gSaw=new THREE.ExtrudeGeometry(sawShape,{depth:.05,bevelEnabled:false});
+function mkSaw(r){const g=new THREE.Group(),bl=new THREE.Mesh(gSaw,M(0xc7ced9));bl.scale.setScalar(r);bl.position.z=-.02;const hb=new THREE.Mesh(new THREE.CylinderGeometry(r*.25,r*.25,.1,10),M(0x4a5563));hb.rotation.x=Math.PI/2;g.add(bl,hb);SPIN.push(bl);return g}
+
+function mkB(k){const c=B[k],g=new THREE.Group();
+ if(k=='path'){const t=new THREE.Mesh(new THREE.BoxGeometry(.97,.09,.97),M(0xc9a875));t.position.y=.045;t.receiveShadow=true;g.add(t);
+  for(let n=0;n<4;n++){const pb=new THREE.Mesh(gPeb,M(0xb59466));pb.position.set(rnd(-.3,.3),.1,rnd(-.3,.3));pb.scale.setScalar(rnd(.5,.8));pb.castShadow=true;g.add(pb)}return g}
+ const i=new THREE.Group(),w=c.s*.88;
+ const f=new THREE.Mesh(new THREE.BoxGeometry(c.s*.96,.06,c.s*.96),M(0xb9c2cf));f.position.y=.03;f.receiveShadow=true;g.add(f);
+ if(k=='saw'||k=='quarry'){
+  const bd=new THREE.Mesh(new THREE.BoxGeometry(w,c.h,w),M(k=='saw'?0xdcc9a5:0xcabfb0));bd.position.y=c.h/2;bd.castShadow=true;i.add(bd);
+  const rf=new THREE.Mesh(new THREE.BoxGeometry(w+.18,.12,w+.32),M(c.roof));rf.rotation.x=.16;rf.position.set(0,c.h+.05,-.06);rf.castShadow=true;i.add(rf);
+  const op=new THREE.Mesh(new THREE.BoxGeometry(w*.6,c.h*.66,.12),M(0x241c12));op.position.set(0,c.h*.36,w/2-.02);i.add(op);
+  const bn=new THREE.Mesh(new THREE.BoxGeometry(.56,.14,.36),M(0x7a5a35));bn.position.set(0,.07,w/2+.08);bn.castShadow=true;i.add(bn);
+  const sw=mkSaw(.5);sw.position.set(0,.37,w/2+.06);i.add(sw);
+  if(k=='saw'){const lm=M(0x8a5a2b);
+   [[-.6,w/2+.14,.09],[-.6,w/2+.34,.09],[-.6,w/2+.24,.26]].forEach(p=>{const l=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.5,7),lm);l.rotation.z=Math.PI/2;l.position.set(p[0],p[2],p[1]);l.castShadow=true;i.add(l)})}
+  else{const sb=M(0x9aa3ad);
+   [[.6,1.05,.12],[.84,1.05,.12],[.72,1.28,.12],[.72,1.16,.34]].forEach(p=>{const q=new THREE.Mesh(new THREE.BoxGeometry(.26,.24,.26),sb);q.position.set(p[0],p[2],p[1]);q.rotation.y=p[0];q.castShadow=true;i.add(q)})}}
+ else if(k=='mine'){
+  const md=new THREE.Mesh(new THREE.BoxGeometry(w,c.h,w),M(0x8d7b64));md.position.y=c.h/2;md.castShadow=true;i.add(md);
+  [[-.6,-.6],[.62,-.56],[-.56,.6],[.6,.6],[0,.68],[-.68,0]].forEach(p=>{const r=new THREE.Mesh(gPeb,M(0x7d8894));r.position.set(p[0],c.h,p[1]);r.scale.setScalar(.75);r.castShadow=true;i.add(r)});
+  const pm=M(0x6b4423);
+  [[-.46],[.46]].forEach(p=>{const q=new THREE.Mesh(new THREE.BoxGeometry(.14,.66,.14),pm);q.position.set(p[0],.33,w/2+.04);q.castShadow=true;i.add(q)});
+  const li=new THREE.Mesh(new THREE.BoxGeometry(1.08,.13,.16),pm);li.position.set(0,.7,w/2+.04);li.castShadow=true;i.add(li);
+  const dk=new THREE.Mesh(new THREE.BoxGeometry(.76,.6,.1),M(0x1c130c));dk.position.set(0,.3,w/2);i.add(dk);
+  const rm2=M(0x5d5f68),tm=M(0x7a5a35);
+  [-.19,.19].forEach(x=>{const rl=new THREE.Mesh(new THREE.BoxGeometry(.05,.05,1.5),rm2);rl.position.set(x,.03,w/2+.72);i.add(rl)});
+  for(let n=0;n<5;n++){const t=new THREE.Mesh(new THREE.BoxGeometry(.5,.04,.09),tm);t.position.set(0,.02,w/2+.1+n*.33);i.add(t)}
+  const ct=new THREE.Mesh(new THREE.BoxGeometry(.4,.2,.28),M(0x5a4632));ct.position.set(0,.16,w/2+.55);ct.castShadow=true;i.add(ct);
+  const or2=new THREE.Mesh(gPeb,M(0x6b4a3a));or2.position.set(0,.3,w/2+.55);or2.scale.setScalar(.55);i.add(or2)}
+ else{const b=new THREE.Mesh(new THREE.BoxGeometry(w,c.h,w),M(c.col||0xf2f4f8));b.position.y=c.h/2;b.castShadow=true;i.add(b);
+  if(c.roof){const r=new THREE.Mesh(new THREE.ConeGeometry(w*.78,.8,4),M(c.roof));r.rotation.y=Math.PI/4;r.position.y=c.h+.4;r.castShadow=true;i.add(r)}
+  if(k=='fact'){const ch=new THREE.Mesh(new THREE.CylinderGeometry(.12,.15,1.2,6),M(0x8a5a44));ch.position.set(w*.28,c.h+.55,-w*.28);ch.castShadow=true;i.add(ch)}
+  if(k=='farm'){const cm2=M(0x55a646),cg=new THREE.Group();
+   for(let a=0;a<5;a++)for(let bq=0;bq<5;bq++){const p=new THREE.Mesh(gCrop,cm2);p.position.set(-1.1+a*.55,.15,-1.1+bq*.55);p.rotation.y=(a*7+bq*3)%6;p.castShadow=true;cg.add(p)}
+   i.add(cg);g.userData.crops=cg;g.userData.cropM=cm2}}
+ i.position.y=.06;g.add(i);g.userData.inner=i;return g}
+function mkV(job){const g=new THREE.Group(),b=new THREE.Mesh(new THREE.CylinderGeometry(.14,.17,.45,6),M(JOBS[job].col)),h=new THREE.Mesh(new THREE.SphereGeometry(.13,6,5),M(0xf3c9a0));b.position.y=.23;h.position.y=.62;g.add(b,h);g.userData.body=b;return g}
+const gR=new THREE.DodecahedronGeometry(.36,0).translate(0,.36,0),rm={s:M(0x9aa0aa),i:M(0x6b4a3a),g:M(0xf1c232)};
+
+/* ===== ข้อมูลโลก ===== */
+const occ=new Map(),key=(x,z)=>x+','+z,free=(x,z)=>x>=-38&&x<38&&z>=-38&&z<38&&!occ.has(key(x,z));
+const nb=()=>S.b.filter(b=>b.k!='hall'&&b.k!='path'&&!b.fr).length,fits=(x,z,s)=>{for(let i=0;i<s;i++)for(let j=0;j<s;j++)if(!free(x+i,z+j))return 0;return 1};
+const cnt=k=>S.b.filter(b=>b.k==k&&b.p>=1).length,mu=k=>1+.5*cnt(k);
+const hcap=b=>b.lv3?6:b.lv2?4:2;
+const cap=()=>2+S.b.reduce((a,b)=>b.k=='house'&&b.p>=1?a+hcap(b):a,0);
+const blim=()=>S.lv*7; // ★ ลิมิตสิ่งก่อสร้าง: เริ่ม 7 หลัง เพิ่มทีละ 7 ต่อเลเวล
+const syncB=b=>{if(b.m&&b.m.userData.inner)b.m.userData.inner.scale.y=(.3+.7*b.p)*(b.lv3?1.9:b.lv2?1.45:1)};
+function syncF(b){if(!b.m||!b.m.userData.crops)return;const gr=Math.min(1,b.gr||0);
+ b.m.userData.crops.children.forEach(p=>p.scale.setScalar(.15+.95*gr));
+ b.m.userData.cropM.color.setHex(0x55a646).lerp(CGOLD,gr)}
+function clr(){dyn.clear();occ.clear();SPIN.length=0;PATHS.clear();$('lbs').innerHTML='';sel=[];selB=null;pl=null;pnv='';gh.visible=grid.visible=false}
+function addT(t){t.m=mkTree();t.m.position.set(t.x+.5,0,t.z+.5);t.m.rotation.y=t.x*7;t.m.scale.setScalar(.35+.65*t.gr);dyn.add(t.m);occ.set(key(t.x,t.z),t);S.t.push(t)}
+function rmT(t){t.dead=1;dyn.remove(t.m);occ.delete(key(t.x,t.z));S.t.splice(S.t.indexOf(t),1)}
+function addR(r){r.m=new THREE.Mesh(gR,rm[r.k]);r.m.scale.y=.7;r.m.castShadow=true;r.m.position.set(r.x+.5,0,r.z+.5);dyn.add(r.m);occ.set(key(r.x,r.z),r);S.r.push(r)}
+function rmR(r){r.dead=1;dyn.remove(r.m);occ.delete(key(r.x,r.z));S.r.splice(S.r.indexOf(r),1)}
+function addB(b){b.s=B[b.k].s;b.m=mkB(b.k);b.m.position.set(b.x+b.s/2,0,b.z+b.s/2);b.m.userData.o=b;syncB(b);if(b.k=='farm')syncF(b);if(b.k=='path')PATHS.add(key(b.x,b.z));dyn.add(b.m);
+ for(let i=0;i<b.s;i++)for(let j=0;j<b.s;j++)occ.set(key(b.x+i,b.z+j),b);S.b.push(b);
+ if(b.p<1){b.lb=document.createElement('div');b.lb.className='lb';$('lbs').appendChild(b.lb)}}
+function addV(v){v.m=mkV(v.job);v.m.userData.o=v;v.m.position.set(v.x,0,v.z);v.tm=v.tm||0;dyn.add(v.m);S.v.push(v)}
+function spawnRock(){for(let n=0;n<20;n++){const x=Math.floor(rnd(-38,38)),z=Math.floor(rnd(-38,38)),q=Math.random();if(free(x,z)&&Math.hypot(x,z)>6){addR({x,z,k:q<.6?'s':q<.85?'i':'g',a:q<.6?8:5});return}}}
+function newWorld(){S={g:1000,w:60,s:20,i:0,f:0,c:0,d:0,tb:0,so:0,cb:0,lv:1,n:0,rt:0,tf:0,auto:1,prod:'chair',b:[],v:[],t:[],r:[]};clr();
+ addB({id:++S.n,k:'hall',x:-1,z:-1,p:1});
+ const hid=++S.n;addB({id:hid,k:'house',x:2,z:-1,p:1});
+ [0,1].forEach(i=>addV({id:++S.n,x:-2+i*2,z:2.5,job:'idle',h:hid}));
+ for(let c=0;c<12;c++){const a=rnd(0,6.28),d=rnd(9,32),cx=Math.cos(a)*d,cz=Math.sin(a)*d;for(let n=0;n<26;n++){const x=Math.floor(cx+rnd(-5,5)),z=Math.floor(cz+rnd(-5,5));if(free(x,z))addT({x,z,gr:1})}}
+ for(let n=0;n<70;n++)spawnRock()}
+function start(id){uid=id;const d=st.get('rts_s_'+id);clr();
+ if(d){try{const o=JSON.parse(d);S={...o,b:[],v:[],t:[],r:[]};['c','d','tb','so','cb','tf','i','f'].forEach(k=>S[k]=S[k]||0);if(S.auto===undefined)S.auto=1;S.prod=S.prod||'chair';
+  o.b.forEach(b=>{b.gr=b.gr||0;addB(b)});o.t.forEach(addT);o.r.forEach(addR);o.v.forEach(addV);
+  if(!S.b.some(b=>b.k=='house'))starterHouse()}catch(e){newWorld()}}else newWorld();
+ $('login').style.display='none';$('top').style.display='flex';$('dv').textContent=dev?'🖥 โหมดคอม':'📱 โหมดมือถือ';$('zb').style.display=dev?'none':'flex';
+ menuOpen=1;$('menu').style.display='grid';cm.x=cm.z=0;refresh();
+ toast(dev?'คอม: ลาก/คลิกขวาลาก=เลื่อน • ล้อเมาส์=ซูม • คลิกขวา=ยกเลิก':'มือถือ: ลาก=เลื่อน • แตะ=เลือก • สองนิ้ว=ซูม • แตะที่ว่าง=ยกเลิก')}
+
+/* ===== UI ===== */
+let sel=[],selB=null,pl=null,pnv='',gx=0,gz=0;
+const can=c=>Object.keys(c).every(k=>(S[k]||0)>=c[k]),pay=c=>{for(const k in c)S[k]-=c[k]},cs=c=>Object.entries(c).map(([k,v])=>RI[k]+v).join(' ');
+const nd=c=>Object.entries(c).map(([k,v])=>RI[k]+Math.floor(S[k]||0)+'/'+v).join(' ');
+function toast(m){const d=document.createElement('div');d.textContent=m;$('ts').appendChild(d);setTimeout(()=>d.remove(),2800)}
+const PK=['c','d','tb','so','cb'];
+function hud(){const fw=(S.tf||0)>0||PK.some(k=>(S[k]||0)>0);
+ $('hud').innerHTML=['g','w','s','i','f'].concat(fw?PK:[]).map(k=>`<span>${RI[k]} ${Math.floor(S[k]||0)}</span>`).join('')+`<span>👥 ${S.v.length}/${cap()}</span><span>🏗 ${nb()}/${blim()}</span><span>⭐ เลเวล ${S.lv}</span>`}
+function menu(){$('menu').innerHTML='<button style="grid-column:1/3;background:#5b6b85" onclick="toggleMenu()">✕ ปิดเมนู</button>'+Object.keys(B).filter(k=>k!='hall').map(k=>{const c=B[k],lk=c.lv>S.lv;return `<button onclick="pick('${k}')" ${lk?'disabled style="opacity:.5"':''}><span style="font-size:22px">${c.ic}</span>${c.n}<small>${c.d}</small><small>${lk?'🔒 เลเวล '+c.lv:cs(c.c)}</small></button>`}).join('')+`<button style="grid-column:1/3;background:#f1c40f;color:#222;border-color:#c9a20c" onclick="openLv()">⭐ อัปเลเวล ${S.lv+1}<small>ลิมิต ${blim()}→${blim()+7} หลัง</small></button>`}
+const hex=c=>'#'+c.toString(16).padStart(6,'0'),opts=j=>Object.keys(JOBS).map(k=>`<option value="${k}" ${k==j?'selected':''}>${JOBS[k].n}</option>`).join('');
+const vRow=v=>`<div style="display:flex;align-items:center;gap:4px;margin:2px 0">👤#${v.id}<select onchange="vj(${v.id},this.value)" style="flex:1">${opts(v.job)}</select></div>`;
+function lvReq(){const c={g:S.lv*300,w:S.lv*100,s:S.lv*50,i:(S.lv-1)*20};const r=[{t:'ทรัพยากร '+nd(c)+' (มี/ต้องมี)',ok:can(c)}];
+ if(S.lv<2)r.push({t:'มีตลาดที่สร้างเสร็จ',ok:cnt('market')>=1},{t:'มีบ้าน 3 หลัง (มี '+cnt('house')+')',ok:cnt('house')>=3},{t:'ประชากร 4 คน (มี '+S.v.length+')',ok:S.v.length>=4});
+ else if(S.lv<3)r.push({t:'มีโรงงาน',ok:cnt('fact')>=1},{t:'มีร้านค้า',ok:cnt('shop')>=1},{t:'เคยผลิตเฟอร์นิเจอร์ 10 ชิ้น (ทำแล้ว '+(S.tf||0)+')',ok:(S.tf||0)>=10});
+ else{const up=S.b.filter(x=>x.k=='house'&&(x.lv2||x.lv3)).length;r.push({t:'ประชากร 12 คน (มี '+S.v.length+')',ok:S.v.length>=12},{t:'เฟอร์นิเจอร์สะสม 40 ชิ้น (ทำแล้ว '+(S.tf||0)+')',ok:(S.tf||0)>=40},{t:'มีบ้านอัปเกรดแล้ว 2 หลัง (มี '+up+')',ok:up>=2})}
+ return{c,r}}
+function lvHTML(){const{c,r}=lvReq();const ok=r.every(x=>x.ok);
+ return `<b>⭐ อัปเลเวล ${S.lv} → ${S.lv+1}</b><br><small>ลิมิตสิ่งก่อสร้าง ${blim()} → <b>${blim()+7}</b> หลัง</small><br>`+r.map(x=>(x.ok?'✅ ':'❌ ')+x.t).join('<br>')+`<br><button onclick="doLv()" style="background:#f1c40f;color:#222" ${ok?'':'disabled'}>ยืนยันอัปเลเวล (ต้องมี ${cs(c)})</button>`}
+function openLv(){pnv='lv';stopPl();sel=[];selB=null;panel()}
+function doLv(){const{c,r}=lvReq();if(!r.every(x=>x.ok))return toast('เงื่อนไขยังไม่ครบ');if(!can(c))return toast('ทรัพยากรไม่พอ');pay(c);S.lv++;pnv='';toast('อัปเลเวล '+S.lv+'! สร้างได้สูงสุด '+blim()+' หลัง');refresh()}
+function panel(){let h='';S.v.forEach(v=>v.m.scale.setScalar(1));
+ if(pnv=='lv')h=lvHTML();
+ else if(pl)h=`วางสิ่งก่อสร้าง: <b>${B[pl].n}</b> <button onclick="closePn()" style="background:#c0392b">ยกเลิก</button><br><small>${dev?'คลิกซ้าย=วาง • คลิกขวา=ยกเลิก':'แตะซ้ำตำแหน่งเดิม=วาง'}${pl=='path'?' • วางต่อกันได้เรื่อยๆ':''}</small>`;
+ else if(sel.length){sel.forEach(v=>v.m.scale.setScalar(1.35));h=`<b>เลือก ${sel.length} คน</b> — เปลี่ยนอาชีพ<br>`+Object.keys(JOBS).map(j=>`<button onclick="setJobs('${j}')" style="background:${hex(JOBS[j].col)}">${JOBS[j].n}</button>`).join('')+`<br><button onclick="closePn()" style="background:#5b6b85">ยกเลิกการเลือก</button>`}
+ else if(selB){const b=selB,c=B[b.k];h=`<b>${c.ic} ${c.n}</b> `+(b.p<1?`(ก่อสร้าง ${Math.floor(b.p*100)}%)`:'');
+  if(b.p>=1){
+   if(b.k=='hall'){const jc={};S.v.forEach(v=>jc[v.job]=(jc[v.job]||0)+1);
+    h+=`<br><b>จัดการชาวบ้านทุกคน (${S.v.length}/${cap()})</b><br><small>${Object.keys(jc).map(k=>JOBS[k].n+'×'+jc[k]).join(' · ')}</small><br><small>ตั้งอาชีพทั้งหมดเป็น:</small><br>`+Object.keys(JOBS).map(j=>`<button onclick="setAllJobs('${j}')" style="background:${hex(JOBS[j].col)}">${JOBS[j].n}</button>`).join('')+'<hr><small>👷 รายชื่อแยกตามบ้านที่อยู่:</small>';
+    const homes=S.b.filter(x=>x.k=='house'&&x.p>=1);
+    homes.forEach(hm=>{const rs=S.v.filter(v=>v.h==hm.id);h+=`<div style="margin-top:5px"><b>🏠 บ้าน #${hm.id}</b> <small>${rs.length}/${hcap(hm)} คน${hm.lv3?' · อัปสูงสุด':hm.lv2?' · อัปแล้ว':''}</small></div>`+rs.map(vRow).join('')});
+    const rest=S.v.filter(v=>!homes.some(hm=>v.h==hm.id));
+    if(rest.length)h+=`<div style="margin-top:5px"><b>🏛 ศาลากลาง / อื่นๆ</b> <small>${rest.length} คน</small></div>`+rest.map(vRow).join('')}
+   else if(b.k=='house'){const cp=hcap(b),rs=S.v.filter(v=>v.h==b.id);h+=`<br>ผู้อยู่อาศัย ${rs.length}/${cp}`+rs.map((v,i)=>`<br>คนที่ ${i+1} <select onchange="vj(${v.id},this.value)">${opts(v.job)}</select>`).join('')+`<br><button onclick="addRes()">➕ เพิ่มผู้อยู่อาศัย ${RI.g}50</button>`;
+    if(b.lv3)h+='<br><small>⬆ อัปเกรดสูงสุดแล้ว (รองรับ 6 คน)</small>';
+    else{const c2=b.lv2?UC2:UC,ncp=b.lv2?6:4,rd=b.lv2?'ครั้งที่ 2':'ครั้งที่ 1';
+     h+=`<br><button onclick="upHouse()" style="background:#8e44ad" ${can(c2)?'':'disabled'}>⬆ อัปเกรดบ้าน${rd} → รองรับ ${ncp} คน</button><br><small>เงื่อนไข (มี/ต้องมี): ${nd(c2)}</small>`}}
+   else if(b.k=='farm'){const gr=Math.floor(Math.min(1,b.gr||0)*100);h+=`<br>${RI.f} ต้นข้าวโตแล้ว <b>${gr}%</b><br><small>ชาวนาดูแลประมาณ <b>30 วินาที</b> จนต้นข้าวสีทองจะเก็บได้ ${RI.f}150 ต่อครั้ง — ชาวนาหลายคนช่วยกันทำให้โตเร็วขึ้น</small>`}
+   else if(b.k=='path')h+=`<br><small>ทางเดินดิน — ชาวบ้านที่เดินบนทางเดินจะเร็วขึ้น 1.5 เท่า</small>`;
+   else if(b.k=='market')h+='<br>🏪 ซื้อขายวัตถุดิบ'+['w','s','i','f'].map(k=>`<div>${RI[k]} <b>${Math.floor(S[k]||0)}</b> <button onclick="sell('${k}')">ขาย10 +${Math.round(P[k]*10)}</button><button onclick="sell('${k}',1)">ขายหมด</button><button onclick="buy('${k}')" style="background:#3a9d4f">ซื้อ10 −${PB[k]*10}</button></div>`).join('');
+   else if(b.k=='shop'){h+='<br><b>ขายเฟอร์นิเจอร์</b> (ผลิตจากโรงงาน)'+Object.values(PROD).map(p=>`<div>${p.ic} ${p.n} <b>${Math.floor(S[p.k]||0)}</b> <button onclick="sell('${p.k}',0,1)">ขาย1 +${p.val}</button><button onclick="sell('${p.k}',0,10)">×10</button><button onclick="sell('${p.k}',1)">หมด</button></div>`).join('');
+    h+='<br><b>📥 รับซื้อวัตถุดิบ (ราคา +50%)</b>'+['w','s','i','f'].map(k=>`<div>${RI[k]} <b>${Math.floor(S[k]||0)}</b> <button onclick="sellRaw('${k}')">ขาย10 +${Math.round(P[k]*15)}</button><button onclick="sellRaw('${k}',1)">ขายหมด</button></div>`).join('');
+    h+=`<br><button onclick="tglAuto()" style="background:${S.auto?'#3a9d4f':'#5b6b85'}">🔁 ขายอัตโนมัติ: ${S.auto?'เปิด':'ปิด'}</button><br><small>ร้านแต่ละหลังขายอัตโนมัติ 1 ชิ้น/5 วิ (ขายของราคาสูงก่อน)</small>`}
+   else if(b.k=='fact'){h+='<br>เลือกสินค้าที่ผลิต (ช่างฝีมือทำงานที่นี่):<br>'+Object.keys(PROD).map(k=>{const p=PROD[k];return `<button onclick="setProd('${k}')" style="${S.prod==k?'background:#3a9d4f':''}">${p.ic} ${p.n}<small>${cs(p.res)} → ขายได้ +${p.val}</small></button>`}).join('')+`<br><small>กำลังผลิต: ${(PROD[S.prod]||PROD.chair).n} • เคยผลิต ${S.tf||0} ชิ้น • คลัง: ${Object.values(PROD).map(p=>p.ic+Math.floor(S[p.k]||0)).join(' ')}</small>`}
+   else if(b.k=='saw')h+='<br><small>โกดังเลื่อยไม้ — มีเลื่อยหมุนอยู่หน้าโกดัง ช่างไม้ที่ทำงานใกล้ที่นี่ได้ไม้มากขึ้น</small>';
+   else if(b.k=='quarry')h+='<br><small>โกดังตัดหิน — ช่างหินที่ทำงานใกล้ที่นี่ได้หินมากขึ้น</small>';
+   else if(b.k=='mine')h+='<br><small>ปากเหมืองมีรางรถเข็นส่งแร่ออกมา — คนขุดแร่ที่ทำงานใกล้ที่นี่ได้ทรัพยากรมากขึ้น</small>'}
+  /* ★ ปุ่มทำลาย: ทุกสิ่งก่อสร้างยกเว้นศาลากลาง (ไว้แก้ปัญหาวางผิดที่/เผื่อที่อัปเกรด) */
+  if(b.k=='hall')h+='<br><small>🏛 ศาลากลางเป็นศูนย์กลางหมู่บ้าน ทำลายไม่ได้</small>';
+  else h+=`<hr><button onclick="rmB()" style="background:#c0392b">🗑 ทำลาย${B[b.k].n}${b.p<1?' (ยกเลิกการก่อสร้าง)':''}</button><br><small>คืนทรัพยากร 50% ของราคาสร้าง${b.k=='path'?' (คืน 1 เหรียญ)':''}</small>`}
+ h=h?'<div style="text-align:right"><button onclick="closePn()" style="background:#5b6b85">✕ ปิด</button></div>'+h:h;$('pn').innerHTML=h;$('pn').style.display=h?'block':'none'}
+function refresh(){menu();hud();panel()}
+function pick(k){pnv='';gx=gz=1e9;if(innerWidth<700&&menuOpen)toggleMenu();pl=k;sel=[];selB=null;const c=B[k];gh.scale.set(c.s,Math.max(.3,c.h+.2),c.s);gh.visible=grid.visible=true;gh.position.set(0,-9,0);panel()}
+function stopPl(){pl=null;gh.visible=grid.visible=false}
+function setJob(v,j){v.job=j;v.tg=null;v.tm=0;v.w=null;v.m.userData.body.material.color.set(JOBS[j].col)}
+function setJobs(j){sel.forEach(v=>setJob(v,j));toast('เปลี่ยนอาชีพเป็น '+JOBS[j].n);panel()}
+function setAllJobs(j){S.v.forEach(v=>setJob(v,j));toast('ทุกคนเป็น'+JOBS[j].n+'แล้ว');panel()}
+function vj(id,j){setJob(S.v.find(v=>v.id==id),j)}
+function addRes(){const b=selB;if(S.v.filter(v=>v.h==b.id).length>=hcap(b))return toast('บ้านเต็ม — อัปเกรดบ้านเพื่อเพิ่มที่นั่ง');if(S.v.length>=cap())return toast('ไม่มีที่อยู่เหลือ — สร้างหรืออัปเกรดบ้าน');if(S.g<50)return toast('เหรียญไม่พอ');S.g-=50;addV({id:++S.n,x:b.x+b.s/2,z:b.z+b.s+.5,job:'idle',h:b.id});refresh()}
+function upHouse(){const b=selB;if(!b||b.k!='house'||b.lv3)return;const c=b.lv2?UC2:UC;if(!can(c))return toast('ยังไม่ครบเงื่อนไข — ดูรายการ (มี/ต้องมี)');pay(c);if(b.lv2)b.lv3=1;else b.lv2=1;syncB(b);toast('อัปเกรดบ้านสำเร็จ! รองรับ '+hcap(b)+' คน');refresh()}
+function sell(k,all,per){const n=all?Math.floor(S[k]||0):(per||10),pr=SV[k]!=null?SV[k]:(P[k]||0);if(n<1||(S[k]||0)<n)return toast(SV[k]!=null?'สินค้าไม่พอ':'ทรัพยากรไม่พอ');S[k]-=n;S.g+=Math.round(pr*n);refresh()}
+function sellRaw(k,all){const n=all?Math.floor(S[k]||0):10;if(n<1||(S[k]||0)<n)return toast('ทรัพยากรไม่พอ');S[k]-=n;S.g+=Math.round(P[k]*1.5*n);refresh()}
+function buy(k){const c=PB[k]*10;if(S.g<c)return toast('เหรียญไม่พอ');S.g-=c;S[k]=(S[k]||0)+10;refresh()}
+function setProd(k){S.prod=k;toast('โรงงานผลิต: '+PROD[k].n);panel()}
+function tglAuto(){S.auto=S.auto?0:1;toast('ขายอัตโนมัติ: '+(S.auto?'เปิด':'ปิด'));panel()}
+/* ★ ทำลายสิ่งก่อสร้าง: คืน 50% ทรัพยากร มียืนยัน ย้ายคนออกจากบ้านที่ถูกทำลาย */
+function rmB(){const b=selB;if(!b||b.k=='hall')return;const nm=B[b.k].n;
+ let msg='ทำลาย '+nm+'? จะได้คืนทรัพยากร 50% ของราคาสร้าง';
+ if(b.k=='path')msg='รื้อทางเดิน? จะได้คืน 1 เหรียญ';
+ if(b.k=='house'){const rs=S.v.filter(v=>v.h==b.id);if(rs.length)msg+=' — ผู้อยู่อาศัย '+rs.length+' คนจะย้ายออกไปอยู่ศาลากลาง'}
+ if(b.p<1)msg='ยกเลิกการก่อสร้าง '+nm+'? จะได้คืนทรัพยากร 50%';
+ if(!confirm(msg))return;
+ if(b.k=='path')S.g++;else{const c=B[b.k].c;for(const k in c)S[k]+=Math.floor(c[k]*.5)}
+ if(b.k=='house'){const rs=S.v.filter(v=>v.h==b.id);rs.forEach(v=>v.h=null);if(rs.length)toast(rs.length+' คนย้ายไปอยู่ศาลากลางชั่วคราว')}
+ b.dead=1; // ให้ช่างก่อสร้างเลิกเดินไปหาตัวที่ถูกทำลาย
+ if(b.lb){b.lb.remove();b.lb=null}
+ dyn.remove(b.m);for(let i=0;i<b.s;i++)for(let j=0;j<b.s;j++)occ.delete(key(b.x+i,b.z+j));if(b.k=='path')PATHS.delete(key(b.x,b.z));
+ const ix=S.b.indexOf(b);if(ix>=0)S.b.splice(ix,1);
+ selB=null;pnv='';refresh();toast('ทำลาย '+nm+' เรียบร้อย')}
+function closePn(){stopPl();sel=[];selB=null;pnv='';panel()}
+let menuOpen=1;function toggleMenu(){menuOpen=!menuOpen;$('menu').style.display=menuOpen?'grid':'none'}
+function openMarket(){const b=S&&S.b.find(b=>b.k=='market'&&b.p>=1);if(!b)return toast('ยังไม่มีตลาด — เปิดเมนู 🏗 เพื่อสร้าง');pnv='';stopPl();sel=[];selB=b;cm.x=b.x+b.s/2;cm.z=b.z+b.s/2;panel()}
+function toggleSel(){selMode=!selMode;$('sm').textContent='🔲 ลากเลือก: '+(selMode?'เปิด':'ปิด');toast(selMode?'ลากเพื่อเลือกหลายคน':'ลากเพื่อเลื่อนแผนที่')}
+function starterHouse(){for(let d=2;d<14;d++)for(let x=-d;x<=d;x++)for(let z=-d;z<=d;z++)if(Math.max(Math.abs(x),Math.abs(z))==d&&fits(x,z,2)){addB({id:++S.n,k:'house',x,z,p:1});return}}
+
+/* ===== วางสิ่งก่อสร้าง ===== */
+const gh=new THREE.Mesh(new THREE.BoxGeometry(1,1,1),new THREE.MeshBasicMaterial({color:0x30ff60,transparent:true,opacity:.5}));gh.visible=false;sc.add(gh);
+function chk(k,x,z){const c=B[k];if(c.lv>S.lv)return'ต้องเลเวล '+c.lv;if(k!='path'&&nb()>=blim())return'ถึงขีดจำกัด '+blim()+' หลังแล้ว (อัปเลเวลเพื่อเพิ่ม)';if(!can(c.c))return'ทรัพยากรไม่พอ';
+ for(let i=0;i<c.s;i++)for(let j=0;j<c.s;j++)if(!free(x+i,z+j))return'พื้นที่ถูกใช้แล้ว';return''}
+function gpos(){const c=B[pl];gx=Math.round(pt.x-c.s/2);gz=Math.round(pt.z-c.s/2);gh.position.set(gx+c.s/2,gh.scale.y/2,gz+c.s/2);gcol()}
+function gcol(){gh.material.color.set(chk(pl,gx,gz)?0xff3030:0x30ff60)}
+function place(){const e=chk(pl,gx,gz);if(e)return toast(e);const isP=pl=='path';pay(B[pl].c);addB({id:++S.n,k:pl,x:gx,z:gz,p:isP?1:0});gcol();hud();if(!isP)toast('เริ่มก่อสร้าง '+B[pl].n)}
+
+/* ===== การควบคุม (แยกตามอุปกรณ์) ===== */
+const ray=new THREE.Raycaster(),mv=new THREE.Vector2(),pln=new THREE.Plane(new THREE.Vector3(0,1,0),0),pt=new THREE.Vector3(),K={},cm={x:0,z:0,yaw:.6,d:32},ptrs=new Map();let dn=null,pinch=0,selMode=0;
+const aim=e=>{mv.set(e.clientX/innerWidth*2-1,-e.clientY/innerHeight*2+1);ray.setFromCamera(mv,cam)},ground=e=>{aim(e);return ray.ray.intersectPlane(pln,pt)};
+const own=h=>{let o=h.object;while(o&&!o.userData.o)o=o.parent;return o&&o.userData.o};
+const d2=()=>{const a=[...ptrs.values()];return Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)};
+function pan(dx,dy){const k=cm.d*.0018,y=cm.yaw;cm.x+=-Math.sin(y)*dy*k-Math.cos(y)*dx*k;cm.z+=-Math.cos(y)*dy*k+Math.sin(y)*dx*k}
+const cv=R.domElement;cv.oncontextmenu=e=>e.preventDefault();
+cv.onpointerdown=e=>{try{cv.setPointerCapture(e.pointerId)}catch(x){}ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+ if(ptrs.size==2){pinch=d2();dn=null;return}
+ dn={x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,b:e.button,mv:0,box:(selMode||e.shiftKey)&&e.button==0&&!pl}};
+cv.onpointermove=e=>{const p=ptrs.get(e.pointerId);if(p){p.x=e.clientX;p.y=e.clientY}
+ if(ptrs.size==2){const d=d2();if(pinch)cm.d=Math.max(10,Math.min(60,cm.d*pinch/d));pinch=d;return}
+ if(S&&pl&&!dn&&ground(e))gpos();
+ if(!dn)return;dn.mv=Math.max(dn.mv,Math.hypot(e.clientX-dn.x,e.clientY-dn.y));
+ if(dn.box){if(dn.mv>5){const b=$('box').style;b.display='block';b.left=Math.min(dn.x,e.clientX)+'px';b.top=Math.min(dn.y,e.clientY)+'px';b.width=Math.abs(e.clientX-dn.x)+'px';b.height=Math.abs(e.clientY-dn.y)+'px'}}
+ else if(dn.mv>5){pan(e.clientX-dn.lx,e.clientY-dn.ly);dn.lx=e.clientX;dn.ly=e.clientY}};
+cv.onpointerup=cv.onpointercancel=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=0;const d=dn;dn=null;$('box').style.display='none';
+ if(!d||!S||e.type=='pointercancel')return;
+ if(d.b==2){if(dev==1&&d.mv<6){stopPl();sel=[];selB=null;pnv='';panel()}return}
+ if(d.b!=0)return;
+ if(d.mv<6){
+  if(pl){if(ground(e)){const ox=gx,oz=gz;gpos();if(e.pointerType=='mouse'||(ox==gx&&oz==gz))place()}return}
+  aim(e);let h=ray.intersectObjects(S.v.map(v=>v.m),true)[0];if(h){pnv='';sel=[own(h)];selB=null;return panel()}
+  h=ray.intersectObjects(S.b.map(b=>b.m),true)[0];if(h){pnv='';selB=own(h);sel=[];return panel()}
+  pnv='';sel=[];selB=null;panel()}
+ else if(d.box){const x1=Math.min(d.x,e.clientX),x2=Math.max(d.x,e.clientX),y1=Math.min(d.y,e.clientY),y2=Math.max(d.y,e.clientY);
+  sel=S.v.filter(v=>{const p=new THREE.Vector3(v.x,.4,v.z).project(cam),sx=(p.x+1)/2*innerWidth,sy=(1-p.y)/2*innerHeight;return sx>=x1&&sx<=x2&&sy>=y1&&sy<=y2});selB=null;panel()}};
+cv.addEventListener('wheel',e=>{e.preventDefault();cm.d=Math.max(10,Math.min(60,cm.d*(1+e.deltaY*.001)))},{passive:false});
+addEventListener('keydown',e=>{if(/INPUT|SELECT/.test(e.target.tagName))return;K[e.code]=1;if(e.code=='Escape'&&S){stopPl();sel=[];selB=null;pnv='';panel()}});
+addEventListener('keyup',e=>K[e.code]=0);
+addEventListener('resize',()=>{R.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()});
+function camUp(dt){const sp=dt*cm.d*.8,f=(K.KeyW||K.ArrowUp?1:0)-(K.KeyS||K.ArrowDown?1:0),r=(K.KeyD||K.ArrowRight?1:0)-(K.KeyA||K.ArrowLeft?1:0),y=cm.yaw;
+ cm.x+=(-Math.sin(y)*f+Math.cos(y)*r)*sp;cm.z+=(-Math.cos(y)*f-Math.sin(y)*r)*sp;cm.yaw+=((K.KeyE?1:0)-(K.KeyQ?1:0))*dt*1.5;
+ cm.x=Math.max(-40,Math.min(40,cm.x));cm.z=Math.max(-40,Math.min(40,cm.z));const p=.85;
+ cam.position.set(cm.x+Math.sin(cm.yaw)*Math.cos(p)*cm.d,Math.sin(p)*cm.d,cm.z+Math.cos(cm.yaw)*Math.cos(p)*cm.d);cam.lookAt(cm.x,0,cm.z)}
+
+/* ===== ระบบเกม ===== */
+function prog(b,d){if(b.p>=1)return;b.p=Math.min(1,b.p+d);syncB(b);if(b.p>=1){if(b.lb){b.lb.remove();b.lb=null}toast('สร้าง'+B[b.k].n+'เสร็จแล้ว!');
+ if(b.k=='house')addV({id:++S.n,x:b.x+b.s/2,z:b.z+b.s+.5,job:'idle',h:b.id});refresh()}}
+function go(v,x,z,dt,r=.15){const dx=x-v.x,dz=z-v.z,d=Math.hypot(dx,dz);if(d<=r)return true;
+ const sp=PATHS.has(key(Math.floor(v.x),Math.floor(v.z)))?3.9:2.6;const s=Math.min(d,sp*dt);v.x+=dx/d*s;v.z+=dz/d*s;v.m.rotation.y=Math.atan2(dx,dz);v.mv=1;return false}
+function near(a,f,v){let b=null,bd=1e9;for(const o of a)if(f(o)){const d=Math.hypot(o.x-v.x,o.z-v.z);if(d<bd){bd=d;b=o}}return b}
+function wander(v,dt){if(v.tm>0){v.tm-=dt;return}if(!v.w)v.w={x:Math.max(-36,Math.min(36,v.x+rnd(-4,4))),z:Math.max(-36,Math.min(36,v.z+rnd(-4,4)))};if(go(v,v.w.x,v.w.z,dt,.1)){v.w=null;v.tm=rnd(1,3)}}
+function work(v,dt){v.mv=0;const J=v.job;
+ if(J=='carp'){if(!v.tg||v.tg.dead)v.tg=near(S.t,t=>t.gr>=1,v);
+  if(v.tg){if(go(v,v.tg.x+.5,v.tg.z+.5,dt,.8)&&(v.tm+=dt)>2){rmT(v.tg);S.w+=Math.round(5*mu('saw'));v.tg=null;v.tm=0}}else wander(v,dt)}
+ else if(J=='plant'){if(!v.tg)for(let n=0;n<15;n++){const x=Math.floor(v.x+rnd(-7,7)),z=Math.floor(v.z+rnd(-7,7));if(free(x,z)&&S.t.length<420){v.tg={x,z};break}}
+  if(v.tg){if(go(v,v.tg.x+.5,v.tg.z+.5,dt,.6)&&(v.tm+=dt)>1.5){if(free(v.tg.x,v.tg.z))addT({x:v.tg.x,z:v.tg.z,gr:0});v.tg=null;v.tm=0}}else wander(v,dt)}
+ else if(J=='build'){if(!v.tg||v.tg.dead||v.tg.p>=1)v.tg=near(S.b,b=>b.p<1,v); // ★ เช็ค dead เผื่อสิ่งก่อสร้างถูกทำลายไป
+  if(v.tg){const b=v.tg;if(go(v,b.x+b.s/2,b.z+b.s+.4,dt,.3))prog(b,dt*.07)}else wander(v,dt)}
+ else if(J=='stone'||J=='miner'){const k=J=='stone'?'s':v.alt?'i':'g';
+  if(!v.tg||v.tg.dead)v.tg=near(S.r,r=>r.k==k,v)||(J=='miner'?near(S.r,r=>r.k!='s',v):null);
+  if(v.tg){const r=v.tg;if(go(v,r.x+.5,r.z+.5,dt,.8)&&(v.tm+=dt)>1.8){v.tm=0;r.a--;
+    if(r.k=='s')S.s+=Math.round(2*mu('quarry'));else if(r.k=='i')S.i+=Math.round(2*mu('mine'));else S.g+=Math.round(12*mu('mine'));
+    if(J=='miner'){v.alt=!v.alt;v.tg=null}if(r.a<=0){rmR(r);v.tg=null}}}else wander(v,dt)}
+ /* ★ ชาวนา: ดูแล ~30 วินาที (ชะลอลงจาก 20 วิ) แล้วเก็บเกี่ยว 150 */
+ else if(J=='farmer'){const fm=near(S.b,b=>b.k=='farm'&&b.p>=1,v);
+  if(fm){if(go(v,fm.x+fm.s/2,fm.z+fm.s+.3,dt,.3)){fm.gr=(fm.gr||0)+dt/30;if(fm.gr>=1){fm.gr=0;S.f+=150;hud()}syncF(fm)}}else wander(v,dt)}
+ else if(J=='craft'){const f=near(S.b,b=>b.k=='fact'&&b.p>=1,v);
+  if(f){if(go(v,f.x+f.s/2,f.z+f.s+.3,dt,.3)&&(v.tm+=dt)>2.5){v.tm=0;const p=PROD[S.prod]||PROD.chair;
+   if(can(p.res)){pay(p.res);S[p.k]=(S[p.k]||0)+1;S.tf=(S.tf||0)+1;hud()}}}else wander(v,dt)}
+ else if(J=='seller'){const f=near(S.b,b=>(b.k=='shop'||b.k=='market')&&b.p>=1,v);
+  if(f){if(go(v,f.x+f.s/2,f.z+f.s+.3,dt,.3)&&(v.tm+=dt)>3){v.tm=0;S.g+=3+cnt('shop')+cnt('market')}}else wander(v,dt)}
+ else wander(v,dt)}
+function upd(dt,t){
+ S.t.forEach(o=>{if(o.gr<1){o.gr=Math.min(1,o.gr+dt/35);o.m.scale.setScalar(.35+.65*o.gr)}});
+ S.b.slice().forEach(b=>prog(b,dt*.004));
+ S.v.forEach(v=>{work(v,dt);v.m.position.set(v.x,v.mv?Math.abs(Math.sin(t*9))*.08:0,v.z)});
+ if((S.rt+=dt)>5){S.rt=0;if(S.r.length<80)spawnRock();
+  if(S.auto){const od=Object.values(PROD).slice().sort((a,b)=>b.val-a.val),n=cnt('shop');
+   for(let i=0;i<n;i++){const p=od.find(x=>(S[x.k]||0)>=1);if(!p)break;S[p.k]--;S.g+=p.val}}}
+ S.b.forEach(b=>{if(!b.lb)return;const p=new THREE.Vector3(b.x+b.s/2,1.7,b.z+b.s/2).project(cam);b.lb.style.left=(p.x+1)/2*innerWidth+'px';b.lb.style.top=(1-p.y)/2*innerHeight+'px';b.lb.textContent=Math.floor(b.p*100)+'%'})}
+let last=performance.now(),hc=0;
+function loop(t){requestAnimationFrame(loop);const dt=Math.min(.1,(t-last)/1e3);last=t;camUp(dt);
+ SPIN.forEach(s=>s.rotation.z+=dt*5);
+ if(S){upd(dt,t/1e3);if((hc+=dt)>.3){hc=0;hud()}}R.render(sc,cam)}
+loop(performance.now());
+setDev(dev);
+</script></body></html>
